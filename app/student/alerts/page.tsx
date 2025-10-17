@@ -67,7 +67,7 @@ export default function AlertsPage() {
             </div>
             <CardTitle>No alerts</CardTitle>
             <CardDescription className="text-base">
-              You're all caught up! We'll notify you of upcoming deadlines and status
+              You&apos;re all caught up! We&apos;ll notify you of upcoming deadlines and status
               changes.
             </CardDescription>
           </CardHeader>

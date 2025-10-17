@@ -1,24 +1,41 @@
 import { NextResponse } from "next/server"
 
+type TaskSnapshot = {
+  completed: boolean
+  category?: string
+  title?: string
+  dueDate?: string
+}
+
+type MilestoneSnapshot = {
+  name?: string
+  dueDate?: string
+  status?: "upcoming" | "at-risk" | "completed"
+}
+
 export async function POST(request: Request) {
-  const body = await request.json()
-  const { tasks = [], milestones = [] } = body
-
-  // Mock logic based on task completion
-  const totalTasks = tasks.length
-  const completedTasks = tasks.filter((t: { completed: boolean }) => t.completed).length
-  const completionRate = totalTasks > 0 ? completedTasks / totalTasks : 0
-
-  let summary = ""
-  if (completionRate >= 0.7) {
-    summary = "On track for all schools. Great progress on essays and recommendations."
-  } else if (completionRate >= 0.4) {
-    summary = "Monitoring essay pace. Consider prioritizing Harvard supplements."
-  } else {
-    summary = "At risk for upcoming deadlines. Reach out to discuss timeline adjustments."
+  const { tasks = [], milestones = [] } = (await request.json()) as {
+    tasks?: TaskSnapshot[]
+    milestones?: MilestoneSnapshot[]
   }
 
-  // Simulate AI processing delay
+  const totalTasks = tasks.length
+  const completedTasks = tasks.filter((task) => task.completed).length
+  const completionRate = totalTasks > 0 ? completedTasks / totalTasks : 0
+
+  const atRiskMilestone = milestones.find((milestone) => milestone.status === "at-risk")
+
+  let summary: string
+  if (atRiskMilestone) {
+    summary = `At risk for ${atRiskMilestone.name ?? "upcoming milestone"} — suggest immediate follow-up.`
+  } else if (completionRate >= 0.7) {
+    summary = "On track for key applications. Essays and rec letters trending positive."
+  } else if (completionRate >= 0.4) {
+    summary = "Progress steady but essay pacing needs support. Check in this week."
+  } else {
+    summary = "Falling behind overall plan. Schedule working session to reset priorities."
+  }
+
   await new Promise((resolve) => setTimeout(resolve, 500))
 
   return NextResponse.json({ summary })

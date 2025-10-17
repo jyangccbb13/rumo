@@ -206,7 +206,7 @@ export default function ExplorePage() {
           <CardHeader className="text-center">
             <CardTitle>No results found</CardTitle>
             <CardDescription>
-              Try searching for "Harvard" or another well-known school.
+              Try searching for &quot;Harvard&quot; or another well-known school.
             </CardDescription>
           </CardHeader>
         </Card>

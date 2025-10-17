@@ -106,7 +106,7 @@ export default function CounselorDashboardPage() {
             </div>
             <CardTitle>No students yet</CardTitle>
             <CardDescription className="text-base">
-              Students will appear here once they're added to your roster.
+              Students will appear here once they&apos;re added to your roster.
             </CardDescription>
           </CardHeader>
         </Card>

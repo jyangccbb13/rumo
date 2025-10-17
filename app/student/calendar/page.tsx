@@ -98,7 +98,6 @@ export default function CalendarPage() {
 
   // Actual days
   for (let day = 1; day <= daysInMonth; day++) {
-    const date = new Date(currentYear, currentMonth, day)
     const key = `${currentYear}-${currentMonth}-${day}`
     const dayTasks = tasksByDate[key] || []
     const isToday =

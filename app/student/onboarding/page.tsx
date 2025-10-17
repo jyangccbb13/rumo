@@ -71,7 +71,7 @@ export default function OnboardingPage() {
         </form>
 
         <p className="text-sm text-muted-foreground">
-          We'll use this to personalize your experience
+          We&apos;ll use this to personalize your experience
         </p>
       </div>
     </div>

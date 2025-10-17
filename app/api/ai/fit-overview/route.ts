@@ -1,55 +1,53 @@
 import { NextResponse } from "next/server"
 import { nanoid } from "nanoid"
-import type { FitOverview } from "@/lib/inMemoryStore"
+
+import type { FitOverview, StudentProfile } from "@/lib/inMemoryStore"
 
 export async function POST(request: Request) {
-  const body = await request.json()
+  const profile = (await request.json()) as Partial<StudentProfile> | undefined
 
-  // Mock response with believable data based on profile
+  const intendedMajor = profile?.intendedMajor?.trim() || "your goals"
+  const location = profile?.locationPreference ?? "your preferred campus setting"
+
   const fitOverview: FitOverview = {
     reach: [
       {
         id: nanoid(),
         name: "Harvard University",
-        rationale:
-          "Strong STEM profile aligns with research opportunities. Competitive reach with 3.5+ GPA.",
+        rationale: `Hyper-selective environment with deep research bench strength that matches ${intendedMajor}. Prepare for intensive essay work.`,
       },
       {
         id: nanoid(),
         name: "MIT",
-        rationale: "Top choice for technical majors. Your robotics experience stands out.",
+        rationale: `Project-based engineering culture where your robotics experience would shine. Consider bolstering maker portfolio pieces.`,
       },
     ],
     target: [
       {
         id: nanoid(),
         name: "UC Berkeley",
-        rationale:
-          "Excellent CS program with strong acceptance rate for your profile. Urban setting matches preference.",
+        rationale: `Flagship public option with top-tier ${intendedMajor} programs and an ${location} vibe.`,
       },
       {
         id: nanoid(),
         name: "University of Michigan",
-        rationale:
-          "Balanced research & teaching focus. Your stats are well-aligned with median admits.",
+        rationale: "Balanced research and teaching with strong internship pipelines; stats align with median admits.",
       },
     ],
     safety: [
       {
         id: nanoid(),
         name: "UC Davis",
-        rationale: "Strong safety with robust STEM programs. Higher acceptance rate.",
+        rationale: "High match based on GPA rigor. Offers collaborative honors cohort and strong pre-professional advising.",
       },
       {
         id: nanoid(),
         name: "University of Washington",
-        rationale:
-          "Solid CS program in urban setting. Stats exceed typical admits.",
+        rationale: "Urban setting with robust CS and engineering options. Admission odds strengthen with early application.",
       },
     ],
   }
 
-  // Simulate AI processing delay
   await new Promise((resolve) => setTimeout(resolve, 800))
 
   return NextResponse.json(fitOverview)
