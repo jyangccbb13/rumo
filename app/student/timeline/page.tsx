@@ -1,8 +1,8 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { CheckCircle2, Circle, Calendar } from "lucide-react"
+import { Plus } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { useAppStore } from "@/lib/inMemoryStore"
-import { formatDistanceToNow } from "@/lib/date-utils"
+import { formatDistanceToNow, formatDate } from "@/lib/date-utils"
 
 export default function TimelinePage() {
   const router = useRouter()
@@ -22,7 +22,8 @@ export default function TimelinePage() {
   const tasks = useAppStore((state) => state.tasks)
   const generateDemoTasks = useAppStore((state) => state.generateDemoTasks)
   const toggleTask = useAppStore((state) => state.toggleTask)
-  const fitOverview = useAppStore((state) => state.fitOverview)
+
+  const [hoveredTask, setHoveredTask] = useState<string | null>(null)
 
   useEffect(() => {
     if (!studentOnboarded) {
@@ -40,18 +41,15 @@ export default function TimelinePage() {
         <div>
           <h1 className="text-3xl font-semibold">Timeline</h1>
           <p className="mt-2 text-muted-foreground">
-            Track your milestones and deadlines in one place.
+            Visualize your college application journey.
           </p>
         </div>
 
         <Card className="rounded-2xl border-dashed border-primary/30 bg-primary/5 shadow-xl">
           <CardHeader className="text-center">
-            <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-primary/10">
-              <Calendar className="size-8 text-primary" />
-            </div>
             <CardTitle>No tasks yet</CardTitle>
             <CardDescription className="text-base">
-              Add a school in Explore or generate tasks from your fit overview.
+              Generate tasks to see your application timeline.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex justify-center">
@@ -60,163 +58,171 @@ export default function TimelinePage() {
               className="rounded-xl px-8 shadow-md"
               onClick={generateDemoTasks}
             >
-              Generate from Fit Overview
+              Generate Timeline
             </Button>
           </CardContent>
         </Card>
-
-        {fitOverview && (
-          <div className="space-y-4">
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-              Your Fit Overview
-            </h2>
-            <div className="grid gap-4 sm:grid-cols-3">
-              <Card className="rounded-2xl border-primary/40 bg-primary/5">
-                <CardHeader>
-                  <CardTitle className="text-sm text-primary">Reach</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {fitOverview.reach.map((school) => (
-                    <Badge
-                      key={school.id}
-                      variant="outline"
-                      className="w-full justify-start rounded-lg border-primary/40 px-3 py-2 text-sm"
-                    >
-                      {school.name}
-                    </Badge>
-                  ))}
-                </CardContent>
-              </Card>
-              <Card className="rounded-2xl border-blue-500/40 bg-blue-500/5">
-                <CardHeader>
-                  <CardTitle className="text-sm text-blue-600">Target</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {fitOverview.target.map((school) => (
-                    <Badge
-                      key={school.id}
-                      variant="outline"
-                      className="w-full justify-start rounded-lg border-blue-500/40 px-3 py-2 text-sm text-blue-600"
-                    >
-                      {school.name}
-                    </Badge>
-                  ))}
-                </CardContent>
-              </Card>
-              <Card className="rounded-2xl border-green-500/40 bg-green-500/5">
-                <CardHeader>
-                  <CardTitle className="text-sm text-green-600">Safety</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {fitOverview.safety.map((school) => (
-                    <Badge
-                      key={school.id}
-                      variant="outline"
-                      className="w-full justify-start rounded-lg border-green-500/40 px-3 py-2 text-sm text-green-600"
-                    >
-                      {school.name}
-                    </Badge>
-                  ))}
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        )}
       </div>
     )
   }
 
-  const sortedTasks = [...tasks].sort((a, b) => {
-    if (a.completed !== b.completed) return a.completed ? 1 : -1
-    if (!a.dueDate) return 1
-    if (!b.dueDate) return -1
-    return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()
-  })
+  // Sort tasks by due date
+  const sortedTasks = [...tasks]
+    .filter((t) => t.dueDate)
+    .sort((a, b) => {
+      if (!a.dueDate || !b.dueDate) return 0
+      return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()
+    })
 
   const categoryColors: Record<string, string> = {
-    essays: "bg-purple-500/10 text-purple-600 border-purple-500/40",
-    testing: "bg-blue-500/10 text-blue-600 border-blue-500/40",
-    recommendations: "bg-green-500/10 text-green-600 border-green-500/40",
-    financial: "bg-yellow-500/10 text-yellow-600 border-yellow-500/40",
-    application: "bg-pink-500/10 text-pink-600 border-pink-500/40",
+    essays: "bg-purple-500",
+    testing: "bg-blue-500",
+    recommendations: "bg-green-500",
+    financial: "bg-yellow-500",
+    application: "bg-pink-500",
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-3xl font-semibold">Timeline</h1>
-          <p className="mt-2 text-muted-foreground">
-            {tasks.filter((t) => !t.completed).length} tasks remaining
-          </p>
-        </div>
-        <Button variant="outline" className="rounded-xl" asChild>
-          <a href="/student/calendar">Switch to Calendar</a>
-        </Button>
+    <div className="space-y-8">
+      <div>
+        <h1 className="text-3xl font-semibold">Timeline</h1>
+        <p className="mt-2 text-muted-foreground">
+          {tasks.filter((t) => !t.completed).length} tasks remaining
+        </p>
       </div>
 
-      <div className="space-y-4">
-        {sortedTasks.map((task) => (
-          <Card
-            key={task.id}
-            className={`rounded-2xl transition-all ${
-              task.completed
-                ? "border-muted bg-muted/40 opacity-60"
-                : "border-border bg-card shadow-md hover:shadow-lg"
-            }`}
-          >
-            <CardHeader className="flex-row items-start gap-4 space-y-0">
-              <button
-                onClick={() => toggleTask(task.id)}
-                className="mt-1 transition-transform hover:scale-110"
-                aria-label={task.completed ? "Mark incomplete" : "Mark complete"}
-              >
-                {task.completed ? (
-                  <CheckCircle2 className="size-6 text-primary" />
-                ) : (
-                  <Circle className="size-6 text-muted-foreground" />
-                )}
-              </button>
-              <div className="flex-1 space-y-2">
-                <div className="flex flex-wrap items-start justify-between gap-2">
-                  <CardTitle
-                    className={`text-lg ${task.completed ? "line-through" : ""}`}
+      {/* Horizontal scrollable timeline */}
+      <div className="relative">
+        <div className="overflow-x-auto pb-8">
+          <div className="relative flex min-w-max gap-8 px-4">
+            {/* Timeline line */}
+            <div className="absolute left-0 right-0 top-12 h-0.5 bg-primary/30" />
+
+            {sortedTasks.map((task, index) => {
+              const isHovered = hoveredTask === task.id
+              const categoryColor = task.category
+                ? categoryColors[task.category]
+                : "bg-primary"
+
+              return (
+                <div
+                  key={task.id}
+                  className="relative flex flex-col items-center"
+                  style={{ minWidth: "200px" }}
+                  onMouseEnter={() => setHoveredTask(task.id)}
+                  onMouseLeave={() => setHoveredTask(null)}
+                >
+                  {/* Date label */}
+                  <div className="mb-4 text-center">
+                    <p className="text-xs font-medium text-muted-foreground">
+                      {task.dueDate && formatDate(new Date(task.dueDate))}
+                    </p>
+                    <p className="text-xs text-primary">
+                      {task.dueDate && formatDistanceToNow(new Date(task.dueDate))}
+                    </p>
+                  </div>
+
+                  {/* Timeline dot */}
+                  <button
+                    onClick={() => toggleTask(task.id)}
+                    className={`relative z-10 flex size-6 items-center justify-center rounded-full border-4 border-background transition-all ${
+                      task.completed
+                        ? "bg-muted-foreground"
+                        : categoryColor
+                    } ${isHovered ? "scale-150" : "scale-100"}`}
                   >
-                    {task.title}
-                  </CardTitle>
-                  {task.dueDate && (
-                    <Badge
-                      variant="outline"
-                      className="rounded-full text-xs font-normal"
-                    >
-                      {formatDistanceToNow(new Date(task.dueDate))}
-                    </Badge>
-                  )}
-                </div>
-                {task.description && (
-                  <CardDescription>{task.description}</CardDescription>
-                )}
-                <div className="flex flex-wrap gap-2">
-                  {task.category && (
-                    <Badge
-                      variant="outline"
-                      className={`rounded-lg text-xs ${
-                        categoryColors[task.category] || ""
+                    {task.completed && (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="size-2 rounded-full bg-background" />
+                      </div>
+                    )}
+                  </button>
+
+                  {/* Task title below dot */}
+                  <div className="mt-4 w-48 text-center">
+                    <p
+                      className={`text-sm font-medium ${
+                        task.completed
+                          ? "text-muted-foreground line-through"
+                          : "text-foreground"
                       }`}
                     >
-                      {task.category}
-                    </Badge>
-                  )}
-                  {task.source && (
-                    <Badge variant="secondary" className="rounded-lg text-xs">
-                      {task.source}
-                    </Badge>
+                      {task.title.length > 40
+                        ? `${task.title.slice(0, 40)}...`
+                        : task.title}
+                    </p>
+                    {task.category && (
+                      <Badge
+                        variant="secondary"
+                        className="mt-2 rounded-lg text-xs"
+                      >
+                        {task.category}
+                      </Badge>
+                    )}
+                  </div>
+
+                  {/* Hover card with details */}
+                  {isHovered && (
+                    <Card
+                      className="absolute top-full z-20 mt-8 w-72 rounded-2xl border-primary/40 bg-card shadow-2xl"
+                      style={{ animation: "fadeIn 0.2s ease-in-out" }}
+                    >
+                      <CardHeader className="space-y-2">
+                        <CardTitle className="text-base">{task.title}</CardTitle>
+                        {task.description && (
+                          <CardDescription className="text-sm">
+                            {task.description}
+                          </CardDescription>
+                        )}
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        <div className="flex flex-wrap gap-2">
+                          {task.category && (
+                            <Badge
+                              className={`rounded-lg text-xs text-white ${categoryColor}`}
+                            >
+                              {task.category}
+                            </Badge>
+                          )}
+                          {task.source && (
+                            <Badge variant="outline" className="rounded-lg text-xs">
+                              {task.source}
+                            </Badge>
+                          )}
+                        </div>
+                        <Button
+                          size="sm"
+                          variant={task.completed ? "outline" : "default"}
+                          className="w-full rounded-xl"
+                          onClick={() => toggleTask(task.id)}
+                        >
+                          {task.completed ? "Mark Incomplete" : "Mark Complete"}
+                        </Button>
+                      </CardContent>
+                    </Card>
                   )}
                 </div>
-              </div>
-            </CardHeader>
-          </Card>
-        ))}
+              )
+            })}
+
+            {/* Add new task button */}
+            <div
+              className="relative flex flex-col items-center"
+              style={{ minWidth: "200px" }}
+            >
+              <div className="mb-4 h-8" />
+              <button className="relative z-10 flex size-6 items-center justify-center rounded-full border-2 border-dashed border-primary/50 bg-background transition-all hover:scale-125">
+                <Plus className="size-4 text-primary" />
+              </button>
+              <p className="mt-4 text-sm text-muted-foreground">Add milestone</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Scroll hint */}
+        <p className="text-center text-xs text-muted-foreground">
+          Scroll horizontally to view all milestones
+        </p>
       </div>
     </div>
   )
