@@ -47,7 +47,14 @@ export default function DraftsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ essay_text: selectedDraft.content }),
       })
-      const result: Feedback = await response.json()
+
+      const result = await response.json()
+
+      // Check if the response contains an error
+      if (!response.ok || result.error) {
+        throw new Error(result.error || "Failed to get AI feedback")
+      }
+
       setFeedback(result)
 
       // Update draft with revised text
@@ -62,7 +69,9 @@ export default function DraftsPage() {
       })
     } catch (error) {
       console.error("Error getting AI feedback:", error)
-      toast.error("Failed to get AI feedback")
+      toast.error("Failed to get AI feedback", {
+        description: error instanceof Error ? error.message : "Please try again"
+      })
     } finally {
       setIsLoading(false)
     }
