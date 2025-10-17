@@ -31,19 +31,22 @@ import { Separator } from "@/components/ui/separator"
 import { useAppStore } from "@/lib/inMemoryStore"
 
 const onboardingSchema = z.object({
-  gpa: z.coerce
-    .number({ message: "Enter your GPA" })
-    .min(0, "GPA must be at least 0")
-    .max(4.5, "GPA must be 4.5 or lower"),
+  gpa: z
+    .string()
+    .trim()
+    .min(1, "Enter your GPA")
+    .refine((value) => {
+      const numeric = Number(value)
+      return !Number.isNaN(numeric) && numeric >= 0 && numeric <= 4.5
+    }, "GPA must be between 0.0 and 4.5"),
   testScore: z
     .string()
-    .optional()
-    .transform((value) => (value && value.trim().length ? value.trim() : ""))
+    .trim()
     .refine(
       (value) =>
         !value ||
         (/^\d+$/.test(value) && Number(value) >= 400 && Number(value) <= 1600),
-      "Enter a composite SAT/ACT between 400-1600 (or leave blank)"
+      "Enter a composite SAT/ACT between 400-1600 (or leave blank)",
     ),
   intendedMajor: z
     .string()
@@ -59,10 +62,7 @@ const onboardingSchema = z.object({
   dreamSchools: z
     .array(z.string().min(1))
     .min(1, "Drop in at least one dream school."),
-  budget: z
-    .string()
-    .optional()
-    .transform((value) => (value && value.trim().length ? value.trim() : "")),
+  budget: z.string().trim(),
   locationPreference: z.enum(["urban", "suburban", "rural"], {
     message: "Pick a location vibe",
   }),
@@ -220,7 +220,7 @@ export default function OnboardingPage() {
   const form = useForm<OnboardingValues>({
     resolver: zodResolver(onboardingSchema),
     defaultValues: {
-      gpa: 3.6,
+      gpa: "3.6",
       testScore: "",
       intendedMajor: "",
       languages: [],
@@ -234,7 +234,7 @@ export default function OnboardingPage() {
     mode: "onChange",
   })
 
-  const watchedMajor = useWatch({ control: form.control, name: "intendedMajor" })
+  const watchedMajor = (useWatch({ control: form.control, name: "intendedMajor" }) ?? "").trim()
 
   const handleNext = async () => {
     const fields = stepConfig[step]?.fields ?? []
@@ -250,20 +250,40 @@ export default function OnboardingPage() {
   const onSubmit = async (values: OnboardingValues) => {
     setIsSubmitting(true)
     try {
+      const trimmedMajor = values.intendedMajor.trim()
+      const languageList = values.languages.map((entry) => entry.trim()).filter(Boolean)
+      const activityList = values.extracurriculars.map((entry) => entry.trim()).filter(Boolean)
+      const dreamList = values.dreamSchools.map((entry) => entry.trim()).filter(Boolean)
+      const numericGpa = Number(values.gpa)
+      const normalizedTestScore = values.testScore.trim()
+      const numericTestScore =
+        normalizedTestScore.length > 0 ? Number(normalizedTestScore) : undefined
+      const normalizedBudget = values.budget.trim()
+      const numericBudget =
+        normalizedBudget.length > 0
+          ? Number(normalizedBudget.replace(/[^0-9.]/g, ""))
+          : undefined
+
       const payload = {
-        ...values,
-        gpa: Number(values.gpa),
-        testScore: values.testScore ? Number(values.testScore) : undefined,
-        budget: values.budget ? Number(values.budget.replace(/[^0-9.]/g, "")) : undefined,
+        gpa: numericGpa,
+        testScore: numericTestScore,
+        intendedMajor: trimmedMajor,
+        languages: languageList,
+        extracurriculars: activityList,
+        dreamSchools: dreamList,
+        budget: numericBudget,
+        locationPreference: values.locationPreference,
+        researchPreference: values.researchPreference,
+        campusSize: values.campusSize,
       }
 
       setStudentProfile({
         gpa: payload.gpa,
-        testScore: payload.testScore,
+        testScore: payload.testScore ?? null,
         intendedMajor: payload.intendedMajor,
-        languages: values.languages,
-        extracurriculars: values.extracurriculars,
-        dreamSchools: values.dreamSchools,
+        languages: payload.languages,
+        extracurriculars: payload.extracurriculars,
+        dreamSchools: payload.dreamSchools,
         budget: payload.budget,
         locationPreference: values.locationPreference,
         researchPreference: values.researchPreference,
