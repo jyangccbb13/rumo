@@ -49,7 +49,16 @@ export type School = {
   id: string
   name: string
   acceptanceRate?: string
+  location?: string
+  tuition?: string
+  avgNetPrice?: string
+  satRange?: string
+  graduationRate?: string
+  studentFacultyRatio?: string
+  size?: string
   source?: string
+  url?: string
+  focus?: string
 }
 
 export type AlertType = "deadline" | "status" | "info"
@@ -138,7 +147,17 @@ export const useAppStore = create<AppState>((set) => ({
   tasks: [],
   generateDemoTasks: () =>
     set((state) => {
-      const source = state.fitOverview?.target[0]?.name ?? "Application"
+      const rankedSchools =
+        state.fitOverview
+          ? [
+              ...(state.fitOverview.reach ?? []),
+              ...(state.fitOverview.target ?? []),
+              ...(state.fitOverview.safety ?? []),
+            ]
+          : []
+
+      const anchorSchool = rankedSchools[0]?.name ?? "Application"
+      const secondarySchool = rankedSchools[1]?.name ?? "Counselor"
       const today = new Date()
       const futureDate = (offset: number) => {
         const date = new Date(today)
@@ -149,20 +168,20 @@ export const useAppStore = create<AppState>((set) => ({
       const demoTasks: Task[] = [
         {
           id: nanoid(),
-          title: `${source} — finalize personal statement`,
-          description: "Polish your narrative arc and tighten the conclusion.",
+          title: `${anchorSchool} — drop the final personal statement`,
+          description: "Polish your narrative arc, tighten the conclusion, and align to the prompt themes.",
           dueDate: futureDate(10),
           category: "essays",
-          source,
+          source: anchorSchool,
           completed: false,
         },
         {
           id: nanoid(),
-          title: `${source} — request teacher recommendation`,
-          description: "Send a thoughtful request email and attach your resume.",
+          title: `${anchorSchool} — teacher rec request + brag sheet`,
+          description: "Send a thoughtful pitch email and attach your updated activities sheet.",
           dueDate: futureDate(5),
           category: "recommendations",
-          source,
+          source: anchorSchool,
           completed: false,
         },
         {
@@ -180,6 +199,24 @@ export const useAppStore = create<AppState>((set) => ({
           description: "Identify 3 scholarships aligned to STEM and first-gen status.",
           dueDate: futureDate(21),
           category: "financial",
+          source: "Counselor",
+          completed: false,
+        },
+        {
+          id: nanoid(),
+          title: `${secondarySchool} — supplement outline`,
+          description: "Draft bullet outline for the 'Why us?' response. Pull two program-specific facts.",
+          dueDate: futureDate(16),
+          category: "essays",
+          source: secondarySchool,
+          completed: false,
+        },
+        {
+          id: nanoid(),
+          title: "Testing strategy check-in",
+          description: "Confirm superscore submission plan and register for final SAT/ACT window if needed.",
+          dueDate: futureDate(25),
+          category: "testing",
           source: "Counselor",
           completed: false,
         },
