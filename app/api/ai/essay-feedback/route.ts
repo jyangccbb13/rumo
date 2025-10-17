@@ -1,38 +1,70 @@
 import { NextResponse } from "next/server"
+import { GoogleGenerativeAI } from "@google/generative-ai"
 
 export async function POST(request: Request) {
   const body = await request.json()
   const { essay_text } = body
 
-  // Mock deterministic improvement
-  const revisedParagraph = essay_text
-    ? essay_text
-        .replace(/I grew up/g, "Growing up")
-        .replace(/I fell in love/g, "This ignited my passion for")
-        .replace(/making people feel understood/g, "bridging cultural divides through language")
-    : "Your revised text will appear here."
-
-  const feedback = {
-    strengths: [
-      "Strong opening hook with cultural identity",
-      "Personal narrative connects to broader impact",
-      "Authentic voice and clear passion",
-    ],
-    issues: [
-      "Conclusion could more explicitly tie to your intended major",
-      "Consider adding a specific anecdote to illustrate translation work",
-      "Check for passive voice in final paragraph",
-    ],
-    action_items: [
-      "Tighten the transition between home and school contexts",
-      "Add metrics or outcomes from your translation work",
-      "Strengthen the 'why this matters' statement",
-    ],
-    revised_paragraph: revisedParagraph,
+  // Check if API key is configured
+  const apiKey = process.env.GEMINI_API_KEY
+  if (!apiKey || apiKey === "your_api_key_here") {
+    return NextResponse.json(
+      { error: "Gemini API key not configured. Please add your API key to .env.local" },
+      { status: 500 }
+    )
   }
 
-  // Simulate AI processing delay
-  await new Promise((resolve) => setTimeout(resolve, 1000))
+  try {
+    // Initialize Gemini API
+    const genAI = new GoogleGenerativeAI(apiKey)
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" })
 
-  return NextResponse.json(feedback)
+    // Create a detailed prompt for essay feedback
+    const prompt = `You are an expert college essay advisor. Analyze the following college essay and provide detailed feedback in JSON format.
+
+Essay:
+"""
+${essay_text}
+"""
+
+Please provide your response in the following JSON format:
+{
+  "strengths": ["strength 1", "strength 2", "strength 3"],
+  "issues": ["issue 1", "issue 2", "issue 3"],
+  "action_items": ["action 1", "action 2", "action 3"],
+  "revised_paragraph": "A revised version of the essay with improvements applied"
+}
+
+Focus on:
+- Strengths: What works well in the essay (tone, storytelling, authenticity)
+- Issues: What could be improved (structure, clarity, impact)
+- Action items: Specific, actionable steps to strengthen the essay
+- Revised paragraph: A polished version that implements your suggestions
+
+Return ONLY the JSON object, no additional text.`
+
+    // Call Gemini API
+    const result = await model.generateContent(prompt)
+    const response = await result.response
+    const text = response.text()
+
+    // Parse JSON response
+    let feedback
+    try {
+      // Clean up the response text (remove markdown code blocks if present)
+      const cleanText = text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim()
+      feedback = JSON.parse(cleanText)
+    } catch (parseError) {
+      console.error("Failed to parse AI response:", text)
+      throw new Error("Failed to parse AI response as JSON")
+    }
+
+    return NextResponse.json(feedback)
+  } catch (error) {
+    console.error("Error calling Gemini API:", error)
+    return NextResponse.json(
+      { error: "Failed to get AI feedback. Please try again." },
+      { status: 500 }
+    )
+  }
 }
