@@ -1,7 +1,7 @@
 "use client"
 
 import { useRouter } from "next/navigation"
-import { User, TrendingUp } from "lucide-react"
+import { User, TrendingUp, Target, ListChecks, Clock4 } from "lucide-react"
 
 import {
   Card,
@@ -75,8 +75,8 @@ export default function CounselorDashboardPage() {
               </div>
             </CardHeader>
 
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
+            <CardContent className="space-y-5">
+              <div className="space-y-3">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Progress</span>
                   <span className="font-semibold">
@@ -84,6 +84,65 @@ export default function CounselorDashboardPage() {
                   </span>
                 </div>
                 <Progress value={student.progress * 100} className="h-2" />
+              </div>
+
+              <div className="rounded-xl border border-border/60 bg-muted/60 p-4 shadow-sm">
+                <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  <Target className="size-4" />
+                  Focus
+                </div>
+                <p className="text-sm text-foreground">{student.fitGoal}</p>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  <TrendingUp className="size-4" />
+                  Priority mix
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {student.targetSchools.map((school) => (
+                    <Badge key={school} variant="secondary" className="rounded-full text-xs">
+                      {school}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-border/60 bg-card/90 p-4 shadow-sm">
+                <div className="flex items-start gap-3">
+                  <ListChecks className="mt-1 size-4 text-primary" />
+                  <div className="space-y-2">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      This week&apos;s top moves
+                    </p>
+                    <ul className="space-y-1.5 text-sm text-muted-foreground">
+                      {student.topPriorities.map((priority) => (
+                        <li key={priority} className="leading-tight">
+                          • {priority}
+                        </li>
+                      ))}
+                    </ul>
+                    <div className="flex flex-wrap gap-2">
+                      {student.standoutStrengths.map((strength) => (
+                        <Badge key={strength} variant="outline" className="rounded-full text-[11px]">
+                          {strength}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-border/60 bg-muted/40 p-4">
+                <div className="flex items-start gap-3">
+                  <Clock4 className="mt-1 size-4 text-primary" />
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      Last touchpoint
+                    </p>
+                    <p className="text-sm text-foreground">{student.lastTouchpoint}</p>
+                  </div>
+                </div>
               </div>
 
               <div className="rounded-xl border border-border/70 bg-muted/60 p-4">
