@@ -64,13 +64,13 @@ const onboardingSchema = z.object({
     .optional()
     .transform((value) => (value && value.trim().length ? value.trim() : "")),
   locationPreference: z.enum(["urban", "suburban", "rural"], {
-    required_error: "Pick a location vibe",
+    message: "Pick a location vibe",
   }),
   researchPreference: z.enum(["research-heavy", "teaching-focused", "balanced"], {
-    required_error: "Select what energizes you most",
+    message: "Select what energizes you most",
   }),
   campusSize: z.enum(["small", "medium", "large"], {
-    required_error: "Pick a campus size sweet spot",
+    message: "Pick a campus size sweet spot",
   }),
 })
 
