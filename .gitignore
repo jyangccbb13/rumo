@@ -16,6 +16,10 @@
 # next.js
 /.next/
 /out/
+/motion-canvas/dist
+/motion-canvas/node_modules
+/motion-canvas/output
+node_modules
 
 # production
 /build

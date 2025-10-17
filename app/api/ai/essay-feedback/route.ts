@@ -1,12 +1,15 @@
 import { NextResponse } from "next/server"
 import { GoogleGenerativeAI } from "@google/generative-ai"
 
+export const runtime = "nodejs"
+
 export async function POST(request: Request) {
   const body = await request.json()
   const { essay_text } = body
 
   // Check if API key is configured
   const apiKey = process.env.GEMINI_API_KEY
+  console.log("API Key loaded:", apiKey ? `${apiKey.substring(0, 10)}...` : "undefined")
   if (!apiKey || apiKey === "your_api_key_here") {
     return NextResponse.json(
       { error: "Gemini API key not configured. Please add your API key to .env.local" },
@@ -55,7 +58,7 @@ Return ONLY the JSON object, no additional text.`
       const cleanText = text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim()
       feedback = JSON.parse(cleanText)
     } catch (parseError) {
-      console.error("Failed to parse AI response:", text)
+      console.error("Failed to parse AI response:", text, parseError)
       throw new Error("Failed to parse AI response as JSON")
     }
 
