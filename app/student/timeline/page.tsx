@@ -98,7 +98,7 @@ export default function TimelinePage() {
             {/* Timeline line */}
             <div className="absolute left-0 right-0 top-12 h-0.5 bg-primary/30" />
 
-            {sortedTasks.map((task, index) => {
+            {sortedTasks.map((task) => {
               const isHovered = hoveredTask === task.id
               const categoryColor = task.category
                 ? categoryColors[task.category]

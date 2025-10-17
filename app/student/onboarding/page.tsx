@@ -150,7 +150,8 @@ export default function OnboardingPage() {
     setIsAnimating(true)
     setTimeout(() => {
       setCurrentQuestion(currentQuestion - 1)
-      const prevAnswer = answers[questions[currentQuestion - 1].id]
+      const prevQuestionId = questions[currentQuestion - 1].id as keyof QuestionData
+      const prevAnswer = answers[prevQuestionId]
       setCurrentAnswer(prevAnswer || "")
       setIsAnimating(false)
     }, 300)
