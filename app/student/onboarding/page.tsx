@@ -32,7 +32,7 @@ import { useAppStore } from "@/lib/inMemoryStore"
 
 const onboardingSchema = z.object({
   gpa: z.coerce
-    .number({ invalid_type_error: "Enter your GPA" })
+    .number({ message: "Enter your GPA" })
     .min(0, "GPA must be at least 0")
     .max(4.5, "GPA must be 4.5 or lower"),
   testScore: z
