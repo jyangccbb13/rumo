@@ -347,7 +347,7 @@ export default function ProfilePage() {
               <Sparkles className="size-12 text-muted-foreground" />
               <h3 className="mt-4 text-lg font-semibold">No analysis yet</h3>
               <p className="mt-2 text-sm text-muted-foreground">
-                Click "Generate Analysis" to get AI-powered insights about your college prospects
+                Click &quot;Generate Analysis&quot; to get AI-powered insights about your college prospects
               </p>
             </CardContent>
           </Card>
