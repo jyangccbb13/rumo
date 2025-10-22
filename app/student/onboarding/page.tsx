@@ -110,9 +110,9 @@ const preferenceChips = {
     { label: "Balanced mix", value: "balanced" },
   ] as const,
   campusSize: [
-    { label: "Small (&lt;5k)", value: "small" },
+    { label: "Small (<5k)", value: "small" },
     { label: "Medium (5-15k)", value: "medium" },
-    { label: "Large (&gt;15k)", value: "large" },
+    { label: "Large (>15k)", value: "large" },
   ] as const,
 }
 

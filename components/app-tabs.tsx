@@ -48,6 +48,12 @@ export function AppTabs() {
         pattern: /^\/student\/timeline/,
       },
       {
+        value: "profile",
+        label: "Profile",
+        href: "/student/profile",
+        pattern: /^\/student\/profile/,
+      },
+      {
         value: "calendar",
         label: "Calendar",
         href: "/student/calendar",

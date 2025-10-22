@@ -3,6 +3,18 @@ import { nanoid } from "nanoid"
 
 export type Role = "student" | "counselor"
 
+export type ProfileSummary = {
+  summary: string
+  strengths: string[]
+  areasToImprove: string[]
+  schoolAssessments: {
+    school: string
+    likelihood: "reach" | "target" | "safety"
+    assessment: string
+  }[]
+  generatedAt: string
+}
+
 export type StudentProfile = {
   gpa: number
   testScore?: number | null
@@ -14,6 +26,7 @@ export type StudentProfile = {
   locationPreference: "urban" | "suburban" | "rural" | null
   researchPreference: "research-heavy" | "teaching-focused" | "balanced" | null
   campusSize: "small" | "medium" | "large" | null
+  profileSummary?: ProfileSummary | null
 }
 
 export type FitSchool = {
@@ -91,6 +104,7 @@ type AppState = {
   setStudentOnboarded: (value: boolean) => void
   studentProfile?: StudentProfile
   setStudentProfile: (profile: StudentProfile) => void
+  updateStudentProfile: (updates: Partial<StudentProfile>) => void
   fitOverview?: FitOverview
   setFitOverview: (fit: FitOverview) => void
   tasks: Task[]
@@ -490,6 +504,9 @@ export const useAppStore = create<AppState>((set) => ({
   setStudentOnboarded: (value) => set({ studentOnboarded: value }),
   studentProfile: undefined,
   setStudentProfile: (profile) => set({ studentProfile: profile }),
+  updateStudentProfile: (updates) => set((state) => ({
+    studentProfile: state.studentProfile ? { ...state.studentProfile, ...updates } : undefined
+  })),
   fitOverview: undefined,
   setFitOverview: (fit) => set({ fitOverview: fit }),
   tasks: [],
