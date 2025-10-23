@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server"
 import { GoogleGenerativeAI } from "@google/generative-ai"
 import schoolsData from "@/data/schools.json"
+import type { School } from "@/lib/inMemoryStore"
 
 export const runtime = "nodejs"
-
-type School = typeof schoolsData.schools[0]
 
 // Tier 1: Search curated database
 function searchCuratedDatabase(query: string, filters?: {
@@ -13,12 +12,12 @@ function searchCuratedDatabase(query: string, filters?: {
 }): School[] {
   const lowercaseQuery = query.toLowerCase()
 
-  let results = schoolsData.schools.filter((school) => {
+  let results = (schoolsData.schools as School[]).filter((school) => {
     const matchesQuery =
       school.name.toLowerCase().includes(lowercaseQuery) ||
-      school.shortName.toLowerCase().includes(lowercaseQuery) ||
-      school.city.toLowerCase().includes(lowercaseQuery) ||
-      school.programs.some((p) => p.toLowerCase().includes(lowercaseQuery))
+      school.shortName?.toLowerCase().includes(lowercaseQuery) ||
+      school.city?.toLowerCase().includes(lowercaseQuery) ||
+      school.programs?.some((p) => p.toLowerCase().includes(lowercaseQuery))
 
     if (!matchesQuery) return false
 
@@ -26,7 +25,7 @@ function searchCuratedDatabase(query: string, filters?: {
 
     if (filters?.maxTuition) {
       const tuition = school.country === "USA" ? school.tuition : school.internationalTuition
-      if (tuition > filters.maxTuition) return false
+      if (tuition && tuition > filters.maxTuition) return false
     }
 
     return true
@@ -34,13 +33,13 @@ function searchCuratedDatabase(query: string, filters?: {
 
   // Sort by relevance (exact name match first, then by ranking)
   results = results.sort((a, b) => {
-    const aExactMatch = a.name.toLowerCase() === lowercaseQuery || a.shortName.toLowerCase() === lowercaseQuery
-    const bExactMatch = b.name.toLowerCase() === lowercaseQuery || b.shortName.toLowerCase() === lowercaseQuery
+    const aExactMatch = a.name.toLowerCase() === lowercaseQuery || a.shortName?.toLowerCase() === lowercaseQuery
+    const bExactMatch = b.name.toLowerCase() === lowercaseQuery || b.shortName?.toLowerCase() === lowercaseQuery
 
     if (aExactMatch && !bExactMatch) return -1
     if (!aExactMatch && bExactMatch) return 1
 
-    return a.worldRanking - b.worldRanking
+    return (a.worldRanking ?? Infinity) - (b.worldRanking ?? Infinity)
   })
 
   return results
