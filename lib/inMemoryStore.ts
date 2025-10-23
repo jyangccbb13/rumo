@@ -61,15 +61,34 @@ export type Draft = {
 export type School = {
   id: string
   name: string
+  shortName?: string
+  country?: string
+  city?: string
+  state?: string | null
   acceptanceRate?: string
+  tuition?: number
+  internationalTuition?: number
+  ranking?: number | null
+  worldRanking?: number | null
+  programs?: string[]
+  internationalStudents?: string
+  applicationDeadline?: string
+  requiredTests?: string[]
+  averageSAT?: number | null
+  averageGPA?: number | null
+  undergraduateEnrollment?: number | null
+  graduationRate?: string
+  employmentRate?: string
+  scholarships?: boolean
+  needBlindAdmission?: boolean
+  website?: string
+  source?: "curated" | "college-scorecard" | "ai-generated"
+  // Legacy fields for backwards compatibility
   location?: string
-  tuition?: string
   avgNetPrice?: string
   satRange?: string
-  graduationRate?: string
   studentFacultyRatio?: string
   size?: string
-  source?: string
   url?: string
   focus?: string
 }

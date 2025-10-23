@@ -1,17 +1,20 @@
 "use client"
 
-import { useMemo, useState, type ComponentType, type SVGProps } from "react"
+import { useState, useEffect, useRef } from "react"
 import {
   Search,
   Plus,
   ExternalLink,
   MapPin,
-  TrendingUp,
   DollarSign,
-  BarChart3,
   GraduationCap,
   Users,
-  School as SchoolIcon,
+  Globe,
+  Calendar,
+  TrendingUp,
+  Award,
+  CheckCircle2,
+  X,
 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -33,29 +36,54 @@ export default function ExplorePage() {
   const addSchool = useAppStore((state) => state.addSchool)
 
   const [query, setQuery] = useState("")
-  const [results, setResults] = useState<School[]>([])
+  const [suggestions, setSuggestions] = useState<School[]>([])
+  const [selectedSchool, setSelectedSchool] = useState<School | null>(null)
   const [isSearching, setIsSearching] = useState(false)
-  const [hasSearched, setHasSearched] = useState(false)
-  const [lastQuery, setLastQuery] = useState("")
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const searchRef = useRef<HTMLDivElement>(null)
 
-  async function handleSearch(event: React.FormEvent) {
-    event.preventDefault()
-    if (!query.trim()) return
-
-    setIsSearching(true)
-    setHasSearched(true)
-
-    try {
-      const response = await fetch(`/api/schools?q=${encodeURIComponent(query.trim())}`)
-      const data = await response.json()
-      setResults(data.schools || [])
-      setLastQuery(data.query ?? query.trim())
-    } catch (error) {
-      console.error("Error searching schools:", error)
-      toast.error("Failed to search schools")
-    } finally {
-      setIsSearching(false)
+  // Autocomplete search as user types
+  useEffect(() => {
+    if (query.trim().length < 2) {
+      setSuggestions([])
+      setShowSuggestions(false)
+      return
     }
+
+    const timeoutId = setTimeout(async () => {
+      setIsSearching(true)
+      try {
+        const response = await fetch(`/api/schools/search?q=${encodeURIComponent(query.trim())}&limit=10`)
+        const data = await response.json()
+        setSuggestions(data.results || [])
+        setShowSuggestions(true)
+      } catch (error) {
+        console.error("Error searching schools:", error)
+      } finally {
+        setIsSearching(false)
+      }
+    }, 300) // Debounce for 300ms
+
+    return () => clearTimeout(timeoutId)
+  }, [query])
+
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setShowSuggestions(false)
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
+
+  function handleSelectSchool(school: School) {
+    setSelectedSchool(school)
+    setQuery("")
+    setSuggestions([])
+    setShowSuggestions(false)
   }
 
   function handleAddSchool(school: School) {
@@ -65,278 +93,368 @@ export default function ExplorePage() {
     })
   }
 
-  const isSchoolAdded = (schoolId: string) => schools.some((existing) => existing.id === schoolId)
+  function handleCloseDetail() {
+    setSelectedSchool(null)
+  }
 
-  const totalResultsLabel = useMemo(() => {
-    if (!hasSearched) return ""
-    if (!lastQuery.trim()) return ""
-    if (!results.length) return `No matches for “${lastQuery}”`
-    if (results.length === 1) return `1 result for “${lastQuery}”`
-    return `${results.length} results for “${lastQuery}”`
-  }, [hasSearched, results.length, lastQuery])
+  const isSchoolAdded = (schoolId: string) => schools.some((existing) => existing.id === schoolId)
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-semibold">Explore Schools</h1>
         <p className="mt-2 text-muted-foreground">
-          Search like a college counselor — we mirror BigFuture data points for a fast vibe check.
+          Search universities worldwide - powered by curated data, College Scorecard API, and AI.
         </p>
       </div>
 
+      {/* Search Bar with Autocomplete */}
       <Card className="rounded-3xl border border-border/70 shadow-2xl">
         <CardContent className="space-y-4 pt-6">
-          <form onSubmit={handleSearch} className="flex flex-col gap-3 sm:flex-row">
-            <div className="relative flex-1">
+          <div className="relative" ref={searchRef}>
+            <div className="relative">
               <Search className="pointer-events-none absolute left-3 top-1/2 size-5 -translate-y-1/2 text-muted-foreground" />
               <Input
                 type="text"
-                placeholder="Search for a school, city, or focus (try “engineering”)"
+                placeholder='Try "Harvard", "engineering", "UK universities"...'
                 value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                className="h-12 rounded-2xl border-none bg-muted/50 pl-11 text-base focus-visible:ring-2 focus-visible:ring-primary"
+                onChange={(e) => setQuery(e.target.value)}
+                onFocus={() => {
+                  if (suggestions.length > 0) setShowSuggestions(true)
+                }}
+                className="h-12 rounded-2xl border-none bg-muted/50 pl-11 pr-4 text-base focus-visible:ring-2 focus-visible:ring-primary"
               />
             </div>
-            <Button
-              type="submit"
-              size="lg"
-              className="h-12 rounded-2xl px-8 shadow-lg"
-              disabled={isSearching}
-            >
-              {isSearching ? "Searching..." : "Search"}
-            </Button>
-          </form>
+
+            {/* Autocomplete Suggestions Dropdown */}
+            {showSuggestions && suggestions.length > 0 && (
+              <div className="absolute z-50 mt-2 w-full rounded-2xl border border-border bg-background shadow-2xl">
+                <div className="max-h-96 overflow-y-auto p-2">
+                  {suggestions.map((school) => (
+                    <button
+                      key={school.id}
+                      onClick={() => handleSelectSchool(school)}
+                      className="w-full rounded-xl p-3 text-left transition-colors hover:bg-muted/80"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1">
+                          <p className="font-semibold text-foreground">{school.name}</p>
+                          <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                            {school.city && school.country && (
+                              <span className="inline-flex items-center gap-1">
+                                <MapPin className="size-3" />
+                                {school.city}, {school.country}
+                              </span>
+                            )}
+                            {school.acceptanceRate && (
+                              <Badge variant="secondary" className="rounded-full text-xs">
+                                {school.acceptanceRate} acceptance
+                              </Badge>
+                            )}
+                            {school.source && (
+                              <Badge variant="outline" className="rounded-full text-xs">
+                                {school.source === "curated" ? "Verified" : school.source}
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {isSearching && query.length >= 2 && (
+              <div className="absolute z-50 mt-2 w-full rounded-2xl border border-border bg-background p-4 shadow-2xl">
+                <div className="flex items-center gap-3">
+                  <div className="size-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                  <p className="text-sm text-muted-foreground">Searching...</p>
+                </div>
+              </div>
+            )}
+          </div>
+
           <p className="text-xs text-muted-foreground">
-            For Sprint 2 we&apos;ll tap live College Scorecard + Wikipedia data. Today&apos;s demo runs on curated results so you can click through.
+            Type at least 2 characters to see suggestions. Data from curated sources, College Scorecard, and AI.
           </p>
         </CardContent>
       </Card>
 
+      {/* My Schools List */}
       {schools.length > 0 && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
               My Schools ({schools.length})
             </h2>
-            <span className="text-xs text-muted-foreground">Pinned for your counselor</span>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             {schools.map((school) => (
               <Card
                 key={school.id}
-                className="rounded-3xl border border-primary/30 bg-gradient-to-br from-primary/5 via-background to-background shadow-lg"
+                className="group cursor-pointer rounded-3xl border border-primary/30 bg-gradient-to-br from-primary/5 via-background to-background shadow-lg transition-all hover:-translate-y-1 hover:shadow-xl"
+                onClick={() => setSelectedSchool(school)}
               >
                 <CardHeader className="space-y-3">
                   <div>
                     <CardTitle className="text-lg">{school.name}</CardTitle>
-                    {school.location && (
-                      <CardDescription className="flex items-center gap-2">
+                    {(school.city || school.location) && (
+                      <CardDescription className="mt-1 flex items-center gap-2">
                         <MapPin className="size-3 text-primary" />
-                        {school.location}
+                        {school.city && school.country
+                          ? `${school.city}, ${school.country}`
+                          : school.location}
                       </CardDescription>
                     )}
                   </div>
-                  <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                  <div className="flex flex-wrap gap-2">
                     {school.acceptanceRate && (
-                      <Badge variant="secondary" className="rounded-full">
-                        Acceptance {school.acceptanceRate}
+                      <Badge variant="secondary" className="rounded-full text-xs">
+                        {school.acceptanceRate} acceptance
                       </Badge>
                     )}
-                    {school.avgNetPrice && (
-                      <Badge variant="outline" className="rounded-full">
-                        Net price {school.avgNetPrice}
-                      </Badge>
-                    )}
-                    {school.satRange && (
-                      <Badge variant="outline" className="rounded-full">
-                        SAT {school.satRange}
+                    {school.worldRanking && (
+                      <Badge variant="outline" className="rounded-full text-xs">
+                        #{school.worldRanking} globally
                       </Badge>
                     )}
                   </div>
                 </CardHeader>
-                <CardContent className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                  {school.focus && (
-                    <Badge variant="secondary" className="rounded-full">
-                      {school.focus}
-                    </Badge>
-                  )}
-                  {school.graduationRate && (
-                    <Badge variant="outline" className="rounded-full">
-                      Grad rate {school.graduationRate}
-                    </Badge>
-                  )}
-                  <Badge variant="secondary" className="rounded-full">
-                    Added to list
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Selected School Detail View */}
+      {selectedSchool && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <Card className="relative max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-3xl shadow-2xl">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute right-4 top-4 rounded-full"
+              onClick={handleCloseDetail}
+            >
+              <X className="size-5" />
+            </Button>
+
+            <CardHeader className="space-y-4 pb-6">
+              <div>
+                <CardTitle className="pr-12 text-3xl">{selectedSchool.name}</CardTitle>
+                {selectedSchool.shortName && selectedSchool.shortName !== selectedSchool.name && (
+                  <p className="mt-1 text-lg text-muted-foreground">{selectedSchool.shortName}</p>
+                )}
+              </div>
+
+              {(selectedSchool.city || selectedSchool.location) && (
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <MapPin className="size-4 text-primary" />
+                  <span>
+                    {selectedSchool.city && selectedSchool.state
+                      ? `${selectedSchool.city}, ${selectedSchool.state}, ${selectedSchool.country}`
+                      : selectedSchool.city && selectedSchool.country
+                      ? `${selectedSchool.city}, ${selectedSchool.country}`
+                      : selectedSchool.location}
+                  </span>
+                </div>
+              )}
+
+              <div className="flex flex-wrap gap-2">
+                {selectedSchool.source && (
+                  <Badge variant="default" className="rounded-full">
+                    {selectedSchool.source === "curated"
+                      ? "Verified Data"
+                      : selectedSchool.source === "college-scorecard"
+                      ? "US Dept of Education"
+                      : "AI Generated"}
                   </Badge>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      )}
+                )}
+                {selectedSchool.worldRanking && (
+                  <Badge variant="secondary" className="rounded-full">
+                    World Ranking: #{selectedSchool.worldRanking}
+                  </Badge>
+                )}
+                {selectedSchool.needBlindAdmission && (
+                  <Badge variant="outline" className="rounded-full text-green-600">
+                    Need-Blind Admission
+                  </Badge>
+                )}
+              </div>
+            </CardHeader>
 
-      {isSearching && (
-        <div className="space-y-4">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-            Loading results
-          </h2>
-          <div className="grid gap-4 sm:grid-cols-2">
-            {[1, 2, 3, 4].map((index) => (
-              <Card key={index} className="rounded-3xl border border-border/60 shadow-lg">
-                <CardHeader className="space-y-3">
-                  <Skeleton className="h-6 w-3/4 rounded-lg" />
-                  <Skeleton className="h-4 w-1/2 rounded-lg" />
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <Skeleton className="h-5 w-full rounded-full" />
-                  <Skeleton className="h-5 w-2/3 rounded-full" />
-                  <Skeleton className="h-10 w-full rounded-full" />
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      )}
+            <CardContent className="space-y-8">
+              {/* Key Stats */}
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {selectedSchool.acceptanceRate && (
+                  <StatCard
+                    icon={TrendingUp}
+                    label="Acceptance Rate"
+                    value={selectedSchool.acceptanceRate}
+                  />
+                )}
+                {selectedSchool.tuition !== undefined && (
+                  <StatCard
+                    icon={DollarSign}
+                    label={selectedSchool.country === "USA" ? "Domestic Tuition" : "Domestic Tuition"}
+                    value={`$${selectedSchool.tuition.toLocaleString()}/year`}
+                  />
+                )}
+                {selectedSchool.internationalTuition !== undefined && selectedSchool.internationalTuition !== selectedSchool.tuition && (
+                  <StatCard
+                    icon={Globe}
+                    label="International Tuition"
+                    value={`$${selectedSchool.internationalTuition.toLocaleString()}/year`}
+                  />
+                )}
+                {selectedSchool.graduationRate && (
+                  <StatCard
+                    icon={GraduationCap}
+                    label="Graduation Rate"
+                    value={selectedSchool.graduationRate}
+                  />
+                )}
+                {selectedSchool.employmentRate && selectedSchool.employmentRate !== "N/A" && (
+                  <StatCard
+                    icon={Award}
+                    label="Employment Rate"
+                    value={selectedSchool.employmentRate}
+                  />
+                )}
+                {selectedSchool.undergraduateEnrollment && (
+                  <StatCard
+                    icon={Users}
+                    label="Undergrad Enrollment"
+                    value={selectedSchool.undergraduateEnrollment.toLocaleString()}
+                  />
+                )}
+                {selectedSchool.internationalStudents && selectedSchool.internationalStudents !== "N/A" && (
+                  <StatCard
+                    icon={Globe}
+                    label="International Students"
+                    value={selectedSchool.internationalStudents}
+                  />
+                )}
+                {selectedSchool.averageSAT && (
+                  <StatCard
+                    icon={Award}
+                    label="Average SAT"
+                    value={selectedSchool.averageSAT.toString()}
+                  />
+                )}
+                {selectedSchool.averageGPA && (
+                  <StatCard
+                    icon={TrendingUp}
+                    label="Average GPA"
+                    value={selectedSchool.averageGPA.toFixed(2)}
+                  />
+                )}
+              </div>
 
-      {!isSearching && hasSearched && results.length > 0 && (
-        <div className="space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-              Search Results
-            </h2>
-            {totalResultsLabel && (
-              <span className="text-xs text-muted-foreground">{totalResultsLabel}</span>
-            )}
-          </div>
+              {/* Programs */}
+              {selectedSchool.programs && selectedSchool.programs.length > 0 && (
+                <div className="space-y-3">
+                  <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                    Top Programs
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedSchool.programs.map((program) => (
+                      <Badge key={program} variant="secondary" className="rounded-full">
+                        {program}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            {results.map((school) => (
-              <Card
-                key={school.id}
-                className="group rounded-3xl border border-border/70 bg-card/95 shadow-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl"
-              >
-                <CardHeader className="space-y-4">
-                  <div className="space-y-2">
-                    <CardTitle className="text-lg">{school.name}</CardTitle>
-                    <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-                      {school.location && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-muted/60 px-3 py-1">
-                          <MapPin className="size-3 text-primary" />
-                          {school.location}
-                        </span>
-                      )}
-                      {school.focus && (
-                        <Badge variant="secondary" className="rounded-full text-xs">
-                          {school.focus}
-                        </Badge>
-                      )}
+              {/* Application Info */}
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                  Application Information
+                </h3>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {selectedSchool.applicationDeadline && (
+                    <div className="flex items-start gap-3 rounded-2xl border border-border/60 bg-muted/40 p-4">
+                      <Calendar className="mt-0.5 size-5 text-primary" />
+                      <div>
+                        <p className="text-xs uppercase tracking-wider text-muted-foreground">
+                          Application Deadline
+                        </p>
+                        <p className="mt-1 font-medium">{selectedSchool.applicationDeadline}</p>
+                      </div>
                     </div>
-                  </div>
-                  <div className="grid gap-3 text-sm text-muted-foreground sm:grid-cols-2">
-                    {school.acceptanceRate && (
-                      <StatTile icon={TrendingUp} label="Acceptance" value={school.acceptanceRate} />
-                    )}
-                    {school.avgNetPrice && (
-                      <StatTile icon={DollarSign} label="Avg. net price" value={school.avgNetPrice} />
-                    )}
-                    {school.satRange && (
-                      <StatTile icon={BarChart3} label="SAT middle 50%" value={school.satRange} />
-                    )}
-                    {school.tuition && (
-                      <StatTile icon={SchoolIcon} label="Tuition" value={school.tuition} />
-                    )}
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                    {school.graduationRate && (
-                      <Badge variant="outline" className="rounded-full">
-                        <GraduationCap className="mr-1 size-3" />
-                        Grad rate {school.graduationRate}
-                      </Badge>
-                    )}
-                    {school.studentFacultyRatio && (
-                      <Badge variant="outline" className="rounded-full">
-                        <Users className="mr-1 size-3" />
-                        {school.studentFacultyRatio} student-faculty
-                      </Badge>
-                    )}
-                    {school.size && (
-                      <Badge variant="outline" className="rounded-full">
-                        {school.size}
-                      </Badge>
-                    )}
-                    {school.source && (
-                      <Badge variant="outline" className="rounded-full">
-                        Source: {school.source}
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      className="flex-1 rounded-full shadow-sm"
-                      onClick={() => handleAddSchool(school)}
-                      disabled={isSchoolAdded(school.id)}
-                    >
-                      <Plus className="mr-2 size-4" />
-                      {isSchoolAdded(school.id) ? "Added" : "Add to my schools"}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="rounded-full"
-                      asChild
-                    >
-                      <a
-                        href={
-                          school.url
-                            ? school.url
-                            : `https://www.google.com/search?q=${encodeURIComponent(`${school.name} admissions`)}`
-                        }
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        aria-label="Open admissions page"
-                      >
-                        <ExternalLink className="size-4" />
-                      </a>
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      )}
+                  )}
+                  {selectedSchool.requiredTests && selectedSchool.requiredTests.length > 0 && (
+                    <div className="flex items-start gap-3 rounded-2xl border border-border/60 bg-muted/40 p-4">
+                      <CheckCircle2 className="mt-0.5 size-5 text-primary" />
+                      <div>
+                        <p className="text-xs uppercase tracking-wider text-muted-foreground">
+                          Required Tests
+                        </p>
+                        <p className="mt-1 text-sm font-medium">
+                          {selectedSchool.requiredTests.join(", ")}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
 
-      {!isSearching && hasSearched && results.length === 0 && (
-        <Card className="rounded-3xl border-dashed border-muted-foreground/40 bg-background shadow-lg">
-          <CardHeader className="space-y-2 text-center">
-            <CardTitle>No results yet</CardTitle>
-            <CardDescription>
-              Try another school name or search for a field like &quot;computer science west coast&quot;.
-            </CardDescription>
-          </CardHeader>
-        </Card>
+              {/* Actions */}
+              <div className="flex flex-wrap gap-3">
+                <Button
+                  size="lg"
+                  className="flex-1 rounded-full shadow-md"
+                  onClick={() => handleAddSchool(selectedSchool)}
+                  disabled={isSchoolAdded(selectedSchool.id)}
+                >
+                  <Plus className="mr-2 size-4" />
+                  {isSchoolAdded(selectedSchool.id) ? "Added to My Schools" : "Add to My Schools"}
+                </Button>
+                {selectedSchool.website && (
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    className="rounded-full"
+                    asChild
+                  >
+                    <a
+                      href={selectedSchool.website}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <ExternalLink className="mr-2 size-4" />
+                      Visit Website
+                    </a>
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       )}
     </div>
   )
 }
 
-type StatTileProps = {
-  icon: ComponentType<SVGProps<SVGSVGElement>>
+function StatCard({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: typeof MapPin
   label: string
   value: string
-}
-
-function StatTile({ icon: Icon, label, value }: StatTileProps) {
+}) {
   return (
-    <div className="flex items-start gap-3 rounded-2xl border border-border/60 bg-muted/40 px-3 py-2 shadow-sm">
+    <div className="flex items-start gap-3 rounded-2xl border border-border/60 bg-muted/40 p-4 shadow-sm">
       <div className="mt-1 rounded-full bg-primary/10 p-2">
-        <Icon className="size-3.5 text-primary" />
+        <Icon className="size-4 text-primary" />
       </div>
       <div>
-        <p className="text-[11px] uppercase tracking-wider text-muted-foreground">{label}</p>
-        <p className="text-sm font-semibold text-foreground">{value}</p>
+        <p className="text-xs uppercase tracking-wider text-muted-foreground">{label}</p>
+        <p className="mt-1 text-lg font-semibold text-foreground">{value}</p>
       </div>
     </div>
   )
