@@ -79,15 +79,15 @@ async function searchCollegeScorecardAPI(query: string): Promise<School | null> 
         : "N/A",
       tuition: school["latest.cost.tuition.in_state"] || 0,
       internationalTuition: school["latest.cost.tuition.out_of_state"] || 0,
-      ranking: null as any,
-      worldRanking: null as any,
+      ranking: null,
+      worldRanking: null,
       programs: [],
       internationalStudents: "N/A",
       applicationDeadline: "Varies",
       requiredTests: ["SAT/ACT", "TOEFL/IELTS (international)"],
       averageSAT: null,
       averageGPA: null,
-      undergraduateEnrollment: school["latest.student.size"] || null as any,
+      undergraduateEnrollment: school["latest.student.size"] || null,
       graduationRate: school["latest.completion.completion_rate_4yr_150nt"]
         ? `${(school["latest.completion.completion_rate_4yr_150nt"] * 100).toFixed(0)}%`
         : "N/A",
@@ -164,7 +164,7 @@ Return ONLY valid JSON, no additional text.`
       acceptanceRate: aiData.acceptanceRate,
       tuition: aiData.tuition,
       internationalTuition: aiData.internationalTuition,
-      ranking: null as any,
+      ranking: null,
       worldRanking: aiData.worldRanking,
       programs: aiData.programs,
       internationalStudents: aiData.internationalStudents,
@@ -201,7 +201,7 @@ export async function GET(request: Request) {
 
   try {
     // Tier 1: Search curated database
-    let results = searchCuratedDatabase(query, { country, maxTuition })
+    const results = searchCuratedDatabase(query, { country, maxTuition })
 
     // If we found results in curated database, return them
     if (results.length > 0) {
