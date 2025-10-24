@@ -27,6 +27,10 @@ export type StudentProfile = {
   researchPreference: "research-heavy" | "teaching-focused" | "balanced" | null
   campusSize: "small" | "medium" | "large" | null
   profileSummary?: ProfileSummary | null
+  // New fields
+  countryOfOrigin?: string | null
+  currentGrade?: "9th" | "10th" | "11th" | "12th" | null
+  applicationCycle?: string | null
 }
 
 export type FitSchool = {

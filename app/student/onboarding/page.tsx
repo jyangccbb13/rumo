@@ -28,9 +28,21 @@ import {
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { useAppStore } from "@/lib/inMemoryStore"
 
 const onboardingSchema = z.object({
+  countryOfOrigin: z.string().min(1, "Please select your country of origin"),
+  currentGrade: z.enum(["9th", "10th", "11th", "12th"], {
+    message: "Select your current grade",
+  }),
+  applicationCycle: z.string().min(1, "Select when you're applying to college"),
   gpa: z
     .string()
     .trim()
@@ -84,7 +96,7 @@ const stepConfig: Array<{
   {
     title: "Academic snapshot",
     description: "Ground the AI in your stats and interests.",
-    fields: ["gpa", "testScore", "intendedMajor", "languages"],
+    fields: ["countryOfOrigin", "currentGrade", "applicationCycle", "gpa", "testScore", "intendedMajor", "languages"],
   },
   {
     title: "Story + dreams",
@@ -96,6 +108,43 @@ const stepConfig: Array<{
     description: "Tell us how you want college to feel.",
     fields: ["budget", "locationPreference", "researchPreference", "campusSize"],
   },
+]
+
+const commonCountries = [
+  "United States",
+  "China",
+  "India",
+  "United Kingdom",
+  "Canada",
+  "Australia",
+  "Germany",
+  "France",
+  "South Korea",
+  "Japan",
+  "Mexico",
+  "Brazil",
+  "Italy",
+  "Spain",
+  "Netherlands",
+  "Singapore",
+  "Switzerland",
+  "Sweden",
+  "Other",
+]
+
+const gradeOptions = [
+  { label: "9th grade (Freshman)", value: "9th" },
+  { label: "10th grade (Sophomore)", value: "10th" },
+  { label: "11th grade (Junior)", value: "11th" },
+  { label: "12th grade (Senior)", value: "12th" },
+] as const
+
+const applicationCycles = [
+  "Fall 2025",
+  "Fall 2026",
+  "Fall 2027",
+  "Fall 2028",
+  "Fall 2029",
 ]
 
 const preferenceChips = {
@@ -220,6 +269,9 @@ export default function OnboardingPage() {
   const form = useForm<OnboardingValues>({
     resolver: zodResolver(onboardingSchema),
     defaultValues: {
+      countryOfOrigin: "",
+      currentGrade: "11th",
+      applicationCycle: "",
       gpa: "3.6",
       testScore: "",
       intendedMajor: "",
@@ -278,6 +330,9 @@ export default function OnboardingPage() {
       }
 
       setStudentProfile({
+        countryOfOrigin: values.countryOfOrigin,
+        currentGrade: values.currentGrade,
+        applicationCycle: values.applicationCycle,
         gpa: payload.gpa,
         testScore: payload.testScore ?? null,
         intendedMajor: payload.intendedMajor,
@@ -438,6 +493,84 @@ export default function OnboardingPage() {
             <form className="space-y-8" onSubmit={form.handleSubmit(onSubmit)}>
               {step === 0 && (
                 <div className="grid gap-6">
+                  <FormField
+                    control={form.control}
+                    name="countryOfOrigin"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Country of origin</FormLabel>
+                        <FormDescription>Where are you from?</FormDescription>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger className="rounded-2xl">
+                              <SelectValue placeholder="Select your country" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {commonCountries.map((country) => (
+                              <SelectItem key={country} value={country}>
+                                {country}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="currentGrade"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Current grade</FormLabel>
+                        <FormDescription>What year are you in?</FormDescription>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger className="rounded-2xl">
+                              <SelectValue placeholder="Select your grade" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {gradeOptions.map((grade) => (
+                              <SelectItem key={grade.value} value={grade.value}>
+                                {grade.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="applicationCycle"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Application cycle</FormLabel>
+                        <FormDescription>When are you applying to college?</FormDescription>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger className="rounded-2xl">
+                              <SelectValue placeholder="Select application cycle" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {applicationCycles.map((cycle) => (
+                              <SelectItem key={cycle} value={cycle}>
+                                {cycle}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
                   <FormField
                     control={form.control}
                     name="gpa"
