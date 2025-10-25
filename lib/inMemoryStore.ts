@@ -535,17 +535,11 @@ export const useAppStore = create<AppState>((set) => ({
   tasks: [],
   generateDemoTasks: () =>
     set((state) => {
-      const rankedSchools =
-        state.fitOverview
-          ? [
-              ...(state.fitOverview.reach ?? []),
-              ...(state.fitOverview.target ?? []),
-              ...(state.fitOverview.safety ?? []),
-            ]
-          : []
+      // Use only schools the user has actually saved, not AI-generated fit overview
+      const userSchools = state.schools.map(s => s.name)
 
-      const anchorSchool = rankedSchools[0]?.name ?? "Application"
-      const secondarySchool = rankedSchools[1]?.name ?? "Counselor"
+      const anchorSchool = userSchools[0] ?? "Application"
+      const secondarySchool = userSchools[1] ?? "Counselor"
       const today = new Date()
       const futureDate = (offset: number) => {
         const date = new Date(today)
