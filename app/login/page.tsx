@@ -7,12 +7,10 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
 
 export default function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
-  const router = useRouter()
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -27,7 +25,7 @@ export default function LoginPage() {
         setError(result.error)
         setLoading(false)
       }
-    } catch (err) {
+    } catch {
       setError("An unexpected error occurred")
       setLoading(false)
     }
@@ -43,7 +41,7 @@ export default function LoginPage() {
         setError(result.error)
         setLoading(false)
       }
-    } catch (err) {
+    } catch {
       setError("An unexpected error occurred")
       setLoading(false)
     }
@@ -132,7 +130,7 @@ export default function LoginPage() {
           </Button>
 
           <div className="text-center text-sm text-muted-foreground">
-            Don't have an account?{" "}
+            Don&apos;t have an account?{" "}
             <Link href="/signup" className="text-primary hover:underline font-medium">
               Sign up
             </Link>
