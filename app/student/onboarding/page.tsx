@@ -35,7 +35,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { useAppStore } from "@/lib/inMemoryStore"
+import { useAppStore, type School } from "@/lib/inMemoryStore"
+import { createStudentProfile } from "@/app/actions/student-profile"
+import { addSchool as addSchoolToSupabase } from "@/app/actions/schools"
+import { nanoid } from "nanoid"
 
 const onboardingSchema = z.object({
   countryOfOrigin: z.string().min(1, "Please select your country of origin"),
@@ -345,6 +348,27 @@ export default function OnboardingPage() {
         campusSize: values.campusSize,
       })
 
+      // Save to Supabase
+      const profileResult = await createStudentProfile({
+        countryOfOrigin: values.countryOfOrigin,
+        currentGrade: values.currentGrade,
+        applicationCycle: values.applicationCycle,
+        gpa: payload.gpa,
+        testScore: payload.testScore ?? null,
+        intendedMajor: payload.intendedMajor,
+        languages: payload.languages,
+        extracurriculars: payload.extracurriculars,
+        dreamSchools: payload.dreamSchools,
+        budget: payload.budget ?? null,
+        locationPreference: values.locationPreference,
+        researchPreference: values.researchPreference,
+        campusSize: values.campusSize,
+      })
+
+      if (profileResult.error) {
+        throw new Error(profileResult.error)
+      }
+
       const response = await fetch("/api/ai/fit-overview", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -355,9 +379,27 @@ export default function OnboardingPage() {
       }
       const overview = await response.json()
       setFitOverview(overview)
+
+      // Automatically add all recommended schools to user's school list
+      const allSchools = [...overview.reach, ...overview.target, ...overview.safety]
+      for (const fitSchool of allSchools) {
+        const school: School = {
+          id: nanoid(),
+          name: fitSchool.name,
+          source: "ai-generated",
+        }
+
+        // Add to Zustand store
+        useAppStore.getState().addSchool(school)
+
+        // Save to Supabase
+        const { id, ...schoolData } = school
+        await addSchoolToSupabase(schoolData)
+      }
+
       setShowConfirmation(true)
       toast.success("Fit overview generated", {
-        description: "We mapped your reach, target, and safety schools.",
+        description: `We mapped your reach, target, and safety schools. All ${allSchools.length} schools have been added to your list!`,
       })
     } catch (error) {
       console.error(error)

@@ -13,8 +13,9 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { useAppStore } from "@/lib/inMemoryStore"
+import { useAppStore, type Task } from "@/lib/inMemoryStore"
 import { formatDistanceToNow, formatDate } from "@/lib/date-utils"
+import { getTasks, toggleTaskCompletion, createBulkTasks } from "@/app/actions/tasks"
 
 const categoryStyles: Record<string, { bg: string; text: string; glow: string }> =
   {
@@ -49,16 +50,74 @@ export default function TimelinePage() {
   const router = useRouter()
   const studentOnboarded = useAppStore((state) => state.studentOnboarded)
   const tasks = useAppStore((state) => state.tasks)
-  const generateDemoTasks = useAppStore((state) => state.generateDemoTasks)
-  const toggleTask = useAppStore((state) => state.toggleTask)
+  const setTasks = useAppStore((state) => state.setTasks)
+  const generateDemoTasksInStore = useAppStore((state) => state.generateDemoTasks)
+  const toggleTaskInStore = useAppStore((state) => state.toggleTask)
 
   const [focusedTask, setFocusedTask] = useState<string | null>(null)
+  const [isLoadingTasks, setIsLoadingTasks] = useState(true)
+
+  // Load tasks from Supabase on mount
+  useEffect(() => {
+    async function loadTasks() {
+      try {
+        const result = await getTasks()
+        if (result.error) {
+          console.error("Error loading tasks:", result.error)
+        } else if (result.data) {
+          // Set tasks from Supabase into Zustand store
+          setTasks(result.data)
+        }
+      } catch (error) {
+        console.error("Error loading tasks:", error)
+      } finally {
+        setIsLoadingTasks(false)
+      }
+    }
+
+    if (studentOnboarded) {
+      loadTasks()
+    }
+  }, [studentOnboarded, setTasks])
 
   useEffect(() => {
     if (!studentOnboarded) {
       router.push("/student/onboarding")
     }
   }, [studentOnboarded, router])
+
+  // Custom toggle that saves to Supabase
+  async function handleToggleTask(taskId: string) {
+    const task = tasks.find((t) => t.id === taskId)
+    if (!task) return
+
+    // Update Zustand store immediately for UI responsiveness
+    toggleTaskInStore(taskId)
+
+    // Save to Supabase
+    const result = await toggleTaskCompletion(taskId, !task.completed)
+    if (result.error) {
+      console.error("Error saving task completion:", result.error)
+      // Revert the change in the UI
+      toggleTaskInStore(taskId)
+    }
+  }
+
+  // Custom generate that saves to Supabase
+  async function handleGenerateDemoTasks() {
+    // Generate tasks in Zustand store
+    generateDemoTasksInStore()
+
+    // Get the newly generated tasks from store
+    const generatedTasks = useAppStore.getState().tasks
+
+    // Save to Supabase
+    const tasksData = generatedTasks.map(({ id, ...rest }) => rest)
+    const result = await createBulkTasks(tasksData)
+    if (result.error) {
+      console.error("Error saving tasks to Supabase:", result.error)
+    }
+  }
 
   const sortedTasks = useMemo(() => {
     const dated = tasks.filter((task) => task.dueDate)
@@ -99,7 +158,7 @@ export default function TimelinePage() {
             <Button
               size="lg"
               className="rounded-full px-8 py-6 text-base shadow-xl"
-              onClick={generateDemoTasks}
+              onClick={handleGenerateDemoTasks}
             >
               Generate from Fit Overview
             </Button>
@@ -159,7 +218,7 @@ export default function TimelinePage() {
 
                   <button
                     type="button"
-                    onClick={() => toggleTask(task.id)}
+                    onClick={() => handleToggleTask(task.id)}
                     className={`relative flex size-12 items-center justify-center rounded-full border-[3px] border-background/90 transition-all duration-300 ease-out ${gradientClass} ${
                       isFocused ? "scale-110" : "scale-100"
                     } ${task.completed ? "opacity-60 grayscale" : "opacity-100"}`}
@@ -225,7 +284,7 @@ export default function TimelinePage() {
                         size="sm"
                         className="flex-1 rounded-full text-xs"
                         variant={task.completed ? "secondary" : "default"}
-                        onClick={() => toggleTask(task.id)}
+                        onClick={() => handleToggleTask(task.id)}
                       >
                         {task.completed ? "Undo complete" : "Mark complete"}
                       </Button>

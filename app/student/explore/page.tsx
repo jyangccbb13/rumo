@@ -29,10 +29,12 @@ import {
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { useAppStore, type School } from "@/lib/inMemoryStore"
+import { getSchools, addSchool as addSchoolToSupabase } from "@/app/actions/schools"
 
 export default function ExplorePage() {
   const schools = useAppStore((state) => state.schools)
   const addSchool = useAppStore((state) => state.addSchool)
+  const [isLoadingSchools, setIsLoadingSchools] = useState(true)
 
   const [query, setQuery] = useState("")
   const [suggestions, setSuggestions] = useState<School[]>([])
@@ -40,6 +42,27 @@ export default function ExplorePage() {
   const [isSearching, setIsSearching] = useState(false)
   const [showSuggestions, setShowSuggestions] = useState(false)
   const searchRef = useRef<HTMLDivElement>(null)
+
+  // Load schools from Supabase on mount
+  useEffect(() => {
+    async function loadSchools() {
+      try {
+        const result = await getSchools()
+        if (result.error) {
+          console.error("Error loading schools:", result.error)
+        } else if (result.data) {
+          // Sync Supabase schools to Zustand store
+          result.data.forEach((school) => addSchool(school))
+        }
+      } catch (error) {
+        console.error("Error loading schools:", error)
+      } finally {
+        setIsLoadingSchools(false)
+      }
+    }
+
+    loadSchools()
+  }, [addSchool])
 
   // Autocomplete search as user types
   useEffect(() => {
@@ -85,8 +108,22 @@ export default function ExplorePage() {
     setShowSuggestions(false)
   }
 
-  function handleAddSchool(school: School) {
+  async function handleAddSchool(school: School) {
+    // Add to Zustand store first for immediate UI update
     addSchool(school)
+
+    // Save to Supabase
+    const { id, ...schoolData } = school
+    const result = await addSchoolToSupabase(schoolData)
+
+    if (result.error) {
+      console.error("Error saving school to Supabase:", result.error)
+      toast.error("School added locally but failed to save", {
+        description: "The school was added to your list but couldn't be saved to the database."
+      })
+      return
+    }
+
     toast.success("School added!", {
       description: `${school.name} has been added to your list.`,
     })

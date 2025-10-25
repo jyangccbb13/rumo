@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Sparkles, RefreshCcw, Edit, CheckCircle2, AlertCircle, Target } from "lucide-react"
 import { toast } from "sonner"
@@ -17,13 +17,68 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useAppStore } from "@/lib/inMemoryStore"
+import { getStudentProfile, updateStudentProfile as updateProfileInSupabase } from "@/app/actions/student-profile"
 
 export default function ProfilePage() {
   const router = useRouter()
   const studentProfile = useAppStore((state) => state.studentProfile)
+  const setStudentProfile = useAppStore((state) => state.setStudentProfile)
   const updateStudentProfile = useAppStore((state) => state.updateStudentProfile)
 
   const [isGenerating, setIsGenerating] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+
+  // Fetch profile from Supabase on mount
+  useEffect(() => {
+    async function loadProfile() {
+      try {
+        const result = await getStudentProfile()
+        if (result.error) {
+          console.error("Error loading profile:", result.error)
+        } else if (result.data) {
+          // Sync Supabase data to Zustand store
+          setStudentProfile({
+            countryOfOrigin: result.data.country_of_origin,
+            currentGrade: result.data.current_grade,
+            applicationCycle: result.data.application_cycle,
+            gpa: result.data.gpa,
+            testScore: result.data.test_score,
+            intendedMajor: result.data.intended_major,
+            languages: result.data.languages,
+            extracurriculars: result.data.extracurriculars,
+            dreamSchools: result.data.dream_schools,
+            budget: result.data.budget,
+            locationPreference: result.data.location_preference,
+            researchPreference: result.data.research_preference,
+            campusSize: result.data.campus_size,
+            profileSummary: result.data.profile_summary,
+          })
+        }
+      } catch (error) {
+        console.error("Error loading profile:", error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    loadProfile()
+  }, [setStudentProfile])
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-semibold">Profile</h1>
+          <p className="mt-2 text-muted-foreground">Loading your profile...</p>
+        </div>
+        <Card className="rounded-2xl shadow-lg">
+          <CardContent className="p-6">
+            <Skeleton className="h-40 w-full rounded-xl" />
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   if (!studentProfile) {
     return (
@@ -73,7 +128,18 @@ export default function ProfilePage() {
         throw new Error(result.error || "Failed to generate analysis")
       }
 
+      // Update Zustand store
       updateStudentProfile({ profileSummary: result })
+
+      // Save to Supabase
+      const supabaseResult = await updateProfileInSupabase({ profileSummary: result })
+      if (supabaseResult.error) {
+        console.error("Error saving to Supabase:", supabaseResult.error)
+        toast.error("Analysis generated but failed to save", {
+          description: "The analysis was created but couldn't be saved to the database."
+        })
+        return
+      }
 
       toast.success("Profile analysis generated!", {
         description: "Your AI-powered insights are ready.",

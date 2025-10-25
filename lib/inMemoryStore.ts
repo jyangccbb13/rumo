@@ -131,6 +131,7 @@ type AppState = {
   fitOverview?: FitOverview
   setFitOverview: (fit: FitOverview) => void
   tasks: Task[]
+  setTasks: (tasks: Task[]) => void
   generateDemoTasks: () => void
   toggleTask: (taskId: string) => void
   resetTasks: () => void
@@ -533,6 +534,7 @@ export const useAppStore = create<AppState>((set) => ({
   fitOverview: undefined,
   setFitOverview: (fit) => set({ fitOverview: fit }),
   tasks: [],
+  setTasks: (tasks) => set({ tasks }),
   generateDemoTasks: () =>
     set((state) => {
       // Use only schools the user has actually saved, not AI-generated fit overview

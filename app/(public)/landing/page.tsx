@@ -8,6 +8,12 @@ import { useAppStore } from "@/lib/inMemoryStore"
 
 export default function LandingPage() {
   const setRole = useAppStore((state) => state.setRole)
+  const setStudentOnboarded = useAppStore((state) => state.setStudentOnboarded)
+
+  const handleDemoClick = () => {
+    setRole("student")
+    setStudentOnboarded(true)
+  }
 
   return (
     <div className="relative flex min-h-[calc(100vh-4rem)] flex-col">
@@ -36,6 +42,15 @@ export default function LandingPage() {
             asChild
           >
             <Link href="/counselor/dashboard">Counselor</Link>
+          </Button>
+          <Button
+            size="lg"
+            variant="secondary"
+            className="rounded-full px-8 py-6 text-lg font-normal shadow-lg transition-all hover:shadow-xl"
+            onClick={handleDemoClick}
+            asChild
+          >
+            <Link href="/student/explore">Demo</Link>
           </Button>
         </div>
       </div>
