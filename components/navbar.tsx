@@ -4,8 +4,13 @@ import { usePathname } from "next/navigation"
 
 import { Logo } from "@/components/logo"
 import { RoleSwitcher } from "@/components/role-switcher"
+import { UserMenu } from "@/components/user-menu"
 
-export function Navbar() {
+interface NavbarProps {
+  userEmail?: string | null
+}
+
+export function Navbar({ userEmail }: NavbarProps) {
   const pathname = usePathname()
   const isLanding = pathname === "/landing" || pathname === "/"
 
@@ -17,10 +22,13 @@ export function Navbar() {
       <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-4">
         <Logo />
         <div className="flex items-center gap-4">
-          <span className="hidden text-sm text-muted-foreground sm:inline-block">
-            {isLanding ? "Choose a view to explore the demo" : "Switch view"}
-          </span>
-          <RoleSwitcher />
+          {!userEmail && (
+            <span className="hidden text-sm text-muted-foreground sm:inline-block">
+              {isLanding ? "Choose a view to explore the demo" : "Switch view"}
+            </span>
+          )}
+          {!userEmail && <RoleSwitcher />}
+          {userEmail && <UserMenu userEmail={userEmail} />}
         </div>
       </div>
     </header>

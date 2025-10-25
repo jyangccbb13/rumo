@@ -5,6 +5,7 @@ import "./globals.css"
 import { Providers } from "@/components/providers"
 import { Navbar } from "@/components/navbar"
 import { AppTabs } from "@/components/app-tabs"
+import { getUser } from "@/app/actions/auth"
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -22,17 +23,19 @@ export const metadata: Metadata = {
     "rumo brings timelines, drafts, school research, and counselor visibility into a single, polished workspace.",
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const user = await getUser()
+
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} bg-background text-foreground`}>
         <Providers>
           <div className="flex min-h-screen flex-col">
-            <Navbar />
+            <Navbar userEmail={user?.email} />
             <AppTabs />
             <main className="flex-1">
               <div className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
